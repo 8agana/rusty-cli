@@ -1,10 +1,10 @@
-pub mod openai;
-pub mod ollama;
-pub mod registry;
 pub mod anthropic;
-pub mod grok;
-pub mod deepseek;
 pub mod cli_passthrough;
+pub mod deepseek;
+pub mod grok;
+pub mod ollama;
+pub mod openai;
+pub mod registry;
 
 use async_trait::async_trait;
 use futures_util::stream::BoxStream;
@@ -35,10 +35,20 @@ pub struct ChatMessage {
 
 impl ChatMessage {
     pub fn user(content: impl Into<String>) -> Self {
-        Self { role: "user".into(), content: content.into(), name: None, tool_call_id: None }
+        Self {
+            role: "user".into(),
+            content: content.into(),
+            name: None,
+            tool_call_id: None,
+        }
     }
     pub fn system(content: impl Into<String>) -> Self {
-        Self { role: "system".into(), content: content.into(), name: None, tool_call_id: None }
+        Self {
+            role: "system".into(),
+            content: content.into(),
+            name: None,
+            tool_call_id: None,
+        }
     }
 }
 

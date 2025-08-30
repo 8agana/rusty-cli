@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
@@ -75,7 +75,7 @@ pub struct CachingConfig {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct McpConfig {
-    pub servers: Option<std::collections::HashMap<String, McpServerConfig>>,    
+    pub servers: Option<std::collections::HashMap<String, McpServerConfig>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -108,7 +108,8 @@ impl Config {
         }
         let default = Self::default_path()?;
         if default.exists() {
-            let text = fs::read_to_string(&default).with_context(|| format!("reading config at {}", default.display()))?;
+            let text = fs::read_to_string(&default)
+                .with_context(|| format!("reading config at {}", default.display()))?;
             parse(&text).with_context(|| "parsing config")
         } else {
             Ok(Self::default())
@@ -123,7 +124,9 @@ impl Config {
     pub fn write_example_if_absent() -> Result<PathBuf> {
         let path = Self::default_path()?;
         if !path.exists() {
-            if let Some(parent) = path.parent() { std::fs::create_dir_all(parent)?; }
+            if let Some(parent) = path.parent() {
+                std::fs::create_dir_all(parent)?;
+            }
             let example = r#"# rusty-cli config (TOML)
 
 [openai]
@@ -205,7 +208,8 @@ strip_ansi = true
             if let Some(parent) = path.parent() {
                 let tdir = parent.join("templates");
                 let _ = std::fs::create_dir_all(&tdir);
-                let starter = "Summarize {{topic}} in 5 bullet points focusing on actionable insights.";
+                let starter =
+                    "Summarize {{topic}} in 5 bullet points focusing on actionable insights.";
                 let _ = fs::write(tdir.join("summarize.tmpl"), starter);
             }
         }
@@ -219,19 +223,25 @@ fn parse(text: &str) -> Result<Config> {
 
 impl OpenAiConfig {
     pub fn effective_api_key(&self) -> Option<String> {
-        self.api_key.clone().or_else(|| std::env::var("OPENAI_API_KEY").ok())
+        self.api_key
+            .clone()
+            .or_else(|| std::env::var("OPENAI_API_KEY").ok())
     }
 }
 
 impl OllamaConfig {
     pub fn effective_base_url(&self) -> String {
-        self.base_url.clone().unwrap_or_else(|| "http://localhost:11434".into())
+        self.base_url
+            .clone()
+            .unwrap_or_else(|| "http://localhost:11434".into())
     }
 }
 
 impl AnthropicConfig {
     pub fn effective_api_key(&self) -> Option<String> {
-        self.api_key.clone().or_else(|| std::env::var("ANTHROPIC_API_KEY").ok())
+        self.api_key
+            .clone()
+            .or_else(|| std::env::var("ANTHROPIC_API_KEY").ok())
     }
     pub fn effective_version(&self) -> String {
         self.version.clone().unwrap_or_else(|| "2023-06-01".into())
@@ -240,7 +250,8 @@ impl AnthropicConfig {
 
 impl GrokConfig {
     pub fn effective_api_key(&self) -> Option<String> {
-        self.api_key.clone()
+        self.api_key
+            .clone()
             .or_else(|| std::env::var("XAI_API_KEY").ok())
             .or_else(|| std::env::var("GROK_API_KEY").ok())
     }
@@ -248,6 +259,8 @@ impl GrokConfig {
 
 impl DeepSeekConfig {
     pub fn effective_api_key(&self) -> Option<String> {
-        self.api_key.clone().or_else(|| std::env::var("DEEPSEEK_API_KEY").ok())
+        self.api_key
+            .clone()
+            .or_else(|| std::env::var("DEEPSEEK_API_KEY").ok())
     }
 }

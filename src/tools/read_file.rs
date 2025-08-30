@@ -1,6 +1,6 @@
 use super::{Tool, ToolSpec};
-use anyhow::{anyhow, Result};
-use serde_json::{json, Value};
+use anyhow::{Result, anyhow};
+use serde_json::{Value, json};
 
 pub struct ReadFile;
 
@@ -23,11 +23,23 @@ impl Tool for ReadFile {
     }
 
     fn call(&self, args: &Value) -> Result<Value> {
-        let path = args.get("path").and_then(|v| v.as_str()).ok_or_else(|| anyhow!("missing 'path'"))?;
-        let max = args.get("max_bytes").and_then(|v| v.as_u64()).unwrap_or(65536) as usize;
+        let path = args
+            .get("path")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| anyhow!("missing 'path'"))?;
+        let max = args
+            .get("max_bytes")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(65536) as usize;
         let data = std::fs::read(path)?;
-        let truncated = if data.len() > max { &data[..max] } else { &data[..] };
+        let truncated = if data.len() > max {
+            &data[..max]
+        } else {
+            &data[..]
+        };
         let text = String::from_utf8_lossy(truncated).to_string();
-        Ok(json!({ "path": path, "bytes": truncated.len(), "truncated": data.len() > max, "content": text }))
+        Ok(
+            json!({ "path": path, "bytes": truncated.len(), "truncated": data.len() > max, "content": text }),
+        )
     }
 }
