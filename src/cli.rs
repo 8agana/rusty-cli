@@ -11,6 +11,7 @@ pub struct Cli {
     pub command: Commands,
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Subcommand, Debug)]
 pub enum Commands {
     /// Chat with a model
@@ -80,7 +81,7 @@ pub struct ChatArgs {
     pub mode: Mode,
 
     /// Max context tokens (rough estimate)
-    #[arg(long, value_name="TOKENS")]
+    #[arg(long, value_name = "TOKENS")]
     pub max_context: Option<u32>,
 
     /// Reserve this many tokens for the model's output
@@ -121,7 +122,13 @@ pub struct ChatArgs {
 }
 
 #[derive(Copy, Clone, Debug, ValueEnum)]
-pub enum HistoryAction { List, Show, Clear, ClearAll, Export }
+pub enum HistoryAction {
+    List,
+    Show,
+    Clear,
+    ClearAll,
+    Export,
+}
 
 #[derive(Args, Debug)]
 pub struct HistoryArgs {
@@ -139,7 +146,10 @@ pub struct HistoryArgs {
 }
 
 #[derive(Copy, Clone, Debug, ValueEnum)]
-pub enum TemplateAction { List, Show }
+pub enum TemplateAction {
+    List,
+    Show,
+}
 
 #[derive(Args, Debug)]
 pub struct TemplatesArgs {
@@ -153,7 +163,10 @@ pub struct TemplatesArgs {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum Mode { Planning, Building }
+pub enum Mode {
+    Planning,
+    Building,
+}
 
 impl std::str::FromStr for Mode {
     type Err = String;

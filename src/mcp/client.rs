@@ -3,10 +3,10 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::process::Stdio;
+use std::sync::Arc;
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, ChildStdin, Command};
 use tokio::sync::{Mutex, oneshot};
-use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct McpClient {
@@ -25,15 +25,19 @@ struct RpcReq<'a> {
     jsonrpc: &'static str,
     id: u64,
     method: &'a str,
-    #[serde(skip_serializing_if = "Option::is_none")] params: Option<Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    params: Option<Value>,
 }
 
 #[derive(Deserialize)]
 struct RpcResp {
-    jsonrpc: String,
+    #[serde(rename = "jsonrpc")]
+    _jsonrpc: String,
     id: u64,
-    #[serde(default)] result: Value,
-    #[serde(default)] error: Option<Value>,
+    #[serde(default)]
+    result: Value,
+    #[serde(default)]
+    error: Option<Value>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -41,20 +45,43 @@ pub struct McpTool {
     pub name: String,
     pub description: String,
     pub parameters: Value,
-    #[serde(default)] pub read_only: bool,
+    #[serde(default)]
+    pub read_only: bool,
 }
 
 impl McpClient {
-    pub async fn spawn(command: &str, args: Option<&Vec<String>>, env: &Option<HashMap<String, String>>, cwd: &Option<String>) -> Result<Self> {
+    pub async fn spawn(
+        command: &str,
+        args: Option<&Vec<String>>,
+        env: &Option<HashMap<String, String>>,
+        cwd: &Option<String>,
+    ) -> Result<Self> {
         let mut cmd = Command::new(command);
-        if let Some(a) = args { cmd.args(a); }
-        if let Some(cwd) = cwd { cmd.current_dir(cwd); }
-        if let Some(envmap) = env { for (k,v) in envmap { cmd.env(k, v); } }
-        cmd.stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::inherit());
-        let mut child = cmd.spawn().with_context(|| format!("spawning MCP server: {}", command))?;
+        if let Some(a) = args {
+            cmd.args(a);
+        }
+        if let Some(cwd) = cwd {
+            cmd.current_dir(cwd);
+        }
+        if let Some(envmap) = env {
+            for (k, v) in envmap {
+                cmd.env(k, v);
+            }
+        }
+        cmd.stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::inherit());
+        let mut child = cmd
+            .spawn()
+            .with_context(|| format!("spawning MCP server: {}", command))?;
         let stdin = child.stdin.take().context("capturing MCP stdin")?;
         let stdout = child.stdout.take().context("capturing MCP stdout")?;
-        let inner = Arc::new(McpInner { child: Mutex::new(child), stdin: Mutex::new(stdin), next_id: Mutex::new(1), pending: Mutex::new(HashMap::new()) });
+        let inner = Arc::new(McpInner {
+            child: Mutex::new(child),
+            stdin: Mutex::new(stdin),
+            next_id: Mutex::new(1),
+            pending: Mutex::new(HashMap::new()),
+        });
         // Spawn a persistent reader task to dispatch JSON-RPC responses by id
         {
             let inner_clone = inner.clone();
@@ -64,25 +91,38 @@ impl McpClient {
                 loop {
                     line.clear();
                     let read = reader.read_line(&mut line).await;
-                    let n = match read { Ok(n) => n, Err(_) => break };
-                    if n == 0 { break; }
+                    let n = match read {
+                        Ok(n) => n,
+                        Err(_) => break,
+                    };
+                    if n == 0 {
+                        break;
+                    }
                     let trimmed = line.trim_end();
-                    if trimmed.is_empty() { continue; }
+                    if trimmed.is_empty() {
+                        continue;
+                    }
                     // Content-Length framing support (JSON-RPC over stdio)
                     if trimmed.to_ascii_lowercase().starts_with("content-length:") {
                         // parse length
-                        let len_str = trimmed.splitn(2, ':').nth(1).map(|s| s.trim()).unwrap_or("");
+                        let len_str = trimmed.split_once(':').map(|x| x.1.trim()).unwrap_or("");
                         let len: usize = len_str.parse().unwrap_or(0);
                         // consume remaining header lines until blank
                         loop {
                             line.clear();
-                            let n2 = match reader.read_line(&mut line).await { Ok(n) => n, Err(_) => 0 };
-                            if n2 == 0 { break; }
-                            if line.trim().is_empty() { break; }
+                            let n2: usize = reader.read_line(&mut line).await.unwrap_or_default();
+                            if n2 == 0 {
+                                break;
+                            }
+                            if line.trim().is_empty() {
+                                break;
+                            }
                         }
                         if len > 0 {
                             let mut body = vec![0u8; len];
-                            if reader.read_exact(&mut body).await.is_err() { break; }
+                            if reader.read_exact(&mut body).await.is_err() {
+                                break;
+                            }
                             if let Ok(resp) = serde_json::from_slice::<RpcResp>(&body) {
                                 let id = resp.id;
                                 if let Some(tx) = inner_clone.pending.lock().await.remove(&id) {
@@ -107,7 +147,8 @@ impl McpClient {
 
     pub async fn list_tools(&self) -> Result<Vec<McpTool>> {
         let res = self.call("tools/list", None).await?;
-        let tools: Vec<McpTool> = serde_json::from_value(res).context("parsing MCP tools/list result")?;
+        let tools: Vec<McpTool> =
+            serde_json::from_value(res).context("parsing MCP tools/list result")?;
         Ok(tools)
     }
 
@@ -124,17 +165,23 @@ impl McpClient {
         *id_guard += 1;
         let (tx, rx) = oneshot::channel();
         self.inner.pending.lock().await.insert(id, tx);
-        let msg = RpcReq { jsonrpc: "2.0", id, method, params };
+        let msg = RpcReq {
+            jsonrpc: "2.0",
+            id,
+            method,
+            params,
+        };
         let line = serde_json::to_string(&msg)? + "\n";
         stdin.write_all(line.as_bytes()).await?;
         stdin.flush().await?;
 
         let resp = rx.await.context("mcp: awaiting response")?;
-        if let Some(err) = resp.error { anyhow::bail!("mcp error: {}", err); }
+        if let Some(err) = resp.error {
+            anyhow::bail!("mcp error: {}", err);
+        }
         Ok(resp.result)
     }
 }
-
 
 #[allow(dead_code)]
 impl McpClient {

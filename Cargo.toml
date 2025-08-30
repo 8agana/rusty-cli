@@ -32,4 +32,3 @@ codegen-units = 1
 lto = true
 opt-level = "z"
 strip = true
-tokio = { version = "1", features = ["rt-multi-thread", "macros", "process", "io-util"] }

@@ -32,6 +32,11 @@ Targeted allow(dead_code)
   - Attribute: #[allow(dead_code)] on the impl block.
   - Reason: Provided a graceful shutdown API, but not yet invoked by main flow; prevents unused warnings until integrated.
 
+Targeted clippy allows
+- providers/cli_passthrough.rs: CliPassthroughProvider::custom()
+  - Attribute: #[allow(clippy::too_many_arguments)] on the function.
+  - Reason: Constructor mirrors config shape; refactoring into a builder would add churn now. Consider a builder-pattern refactor later.
+
 Build hygiene notes
 - Keep ValueEnum-based CLI enums in cli.rs in sync with main.rs matches.
 - If additional helper APIs are introduced and not yet wired, annotate them with targeted #[allow(dead_code)] and add an entry here stating file, symbol, and reason.

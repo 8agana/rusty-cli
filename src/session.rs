@@ -17,20 +17,30 @@ impl SessionStore {
         Ok(base.join("rusty-cli").join("sessions"))
     }
 
-    pub fn path(session: &str) -> Result<PathBuf> { Ok(Self::dir()?.join(format!("{}.json", session))) }
+    pub fn path(session: &str) -> Result<PathBuf> {
+        Ok(Self::dir()?.join(format!("{}.json", session)))
+    }
 
     pub fn load(session: &str) -> Result<Vec<ChatMessage>> {
         let path = Self::path(session)?;
-        if !path.exists() { return Ok(vec![]); }
-        let text = fs::read_to_string(&path).with_context(|| format!("reading session {}", session))?;
-        let file: SessionFile = serde_json::from_str(&text).with_context(|| "parsing session json")?;
+        if !path.exists() {
+            return Ok(vec![]);
+        }
+        let text =
+            fs::read_to_string(&path).with_context(|| format!("reading session {}", session))?;
+        let file: SessionFile =
+            serde_json::from_str(&text).with_context(|| "parsing session json")?;
         Ok(file.messages)
     }
 
     pub fn save(session: &str, messages: &[ChatMessage]) -> Result<()> {
         let path = Self::path(session)?;
-        if let Some(parent) = path.parent() { fs::create_dir_all(parent)?; }
-        let data = serde_json::to_string_pretty(&SessionFile { messages: messages.to_vec() })?;
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        let data = serde_json::to_string_pretty(&SessionFile {
+            messages: messages.to_vec(),
+        })?;
         fs::write(&path, data).with_context(|| format!("writing session {}", session))?;
         Ok(())
     }
@@ -42,10 +52,10 @@ impl SessionStore {
             for entry in std::fs::read_dir(dir)? {
                 let entry = entry?;
                 let path = entry.path();
-                if path.extension().and_then(|s| s.to_str()) == Some("json") {
-                    if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
-                        out.push(stem.to_string());
-                    }
+                if path.extension().and_then(|s| s.to_str()) == Some("json")
+                    && let Some(stem) = path.file_stem().and_then(|s| s.to_str())
+                {
+                    out.push(stem.to_string());
                 }
             }
         }
@@ -55,13 +65,20 @@ impl SessionStore {
 
     pub fn delete(session: &str) -> Result<()> {
         let path = Self::path(session)?;
-        if path.exists() { std::fs::remove_file(path)?; }
+        if path.exists() {
+            std::fs::remove_file(path)?;
+        }
         Ok(())
     }
 
     pub fn clear_all() -> Result<()> {
         let dir = Self::dir()?;
-        if dir.exists() { for entry in std::fs::read_dir(dir)? { let e = entry?; let _ = std::fs::remove_file(e.path()); } }
+        if dir.exists() {
+            for entry in std::fs::read_dir(dir)? {
+                let e = entry?;
+                let _ = std::fs::remove_file(e.path());
+            }
+        }
         Ok(())
     }
 }
