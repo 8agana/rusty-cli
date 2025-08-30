@@ -2,7 +2,6 @@ use super::{Tool, ToolSpec};
 use crate::mcp::client::McpClient;
 use anyhow::Result;
 use serde_json::Value;
-use std::sync::Arc;
 
 pub struct McpTool {
     client: McpClient,

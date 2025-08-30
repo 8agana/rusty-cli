@@ -1,4 +1,4 @@
-use super::{ChatDelta, ChatMessage, ChatRequest, ChatResponse, ChatStream, LlmProvider, ProviderError, ToolCall, ToolSpec};
+use super::{ChatRequest, ChatResponse, ChatStream, LlmProvider, ProviderError, ToolCall};
 use async_trait::async_trait;
 use futures_util::StreamExt;
 use reqwest::Client;

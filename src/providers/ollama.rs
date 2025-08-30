@@ -1,6 +1,6 @@
-use super::{ChatDelta, ChatMessage, ChatRequest, ChatResponse, ChatStream, LlmProvider, ProviderError};
+use super::{ChatDelta, ChatRequest, ChatResponse, ChatStream, LlmProvider, ProviderError};
 use async_trait::async_trait;
-use futures_util::{stream, StreamExt, TryStreamExt};
+use futures_util::{StreamExt, TryStreamExt};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
